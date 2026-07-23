@@ -4,6 +4,8 @@ Monitor cloud para las funciones de **La Odisea** en **IMAX Theatre (Norcenter)*
 
 Después de enviar la primera alerta, el workflow se desactiva automáticamente para evitar duplicados.
 
+Además, alrededor de las **11:00 de Argentina** envía un heartbeat diario confirmando que el monitor funciona y que todavía no aparecieron nuevas funciones. GitHub puede demorar las ejecuciones programadas, por lo que el horario no es exacto.
+
 ## Seguridad
 
 El topic privado no está en el repositorio. Está configurado como el secret `NTFY_TOPIC` de GitHub Actions y GitHub lo oculta en los logs.
@@ -16,7 +18,7 @@ Para recibir la alerta en un teléfono:
 
 ## Probar manualmente
 
-Desde la pestaña **Actions**, ejecutar `Monitor La Odisea` con **Run workflow**. Con el umbral productivo actual no enviará nada mientras solo existan funciones hasta el 5 de agosto.
+Desde la pestaña **Actions**, ejecutar `Monitor La Odisea` con **Run workflow**. Activar `Send a test heartbeat notification` para enviar una confirmación real sin cambiar el umbral ni desactivar el monitor.
 
 Prueba local sin notificar:
 

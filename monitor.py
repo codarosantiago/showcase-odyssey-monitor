@@ -142,7 +142,7 @@ def set_action_output(name: str, value: str) -> None:
             output.write(f"{name}={value}\n")
 
 
-def notify(topic: str, matches: list[tuple[str, date]]) -> None:
+def notify_new_showtimes(topic: str, matches: list[tuple[str, date]]) -> None:
     details = ", ".join(f"{movie_format} — {day:%d/%m/%Y}" for movie_format, day in matches)
     response = requests.post(
         f"https://ntfy.sh/{topic}",
@@ -158,14 +158,34 @@ def notify(topic: str, matches: list[tuple[str, date]]) -> None:
     response.raise_for_status()
 
 
+def notify_heartbeat(topic: str, latest_date: date) -> None:
+    response = requests.post(
+        f"https://ntfy.sh/{topic}",
+        data=(
+            "Revisión diaria OK. El monitor está funcionando y todavía no hay "
+            f"funciones desde el 06/08/2026. Última fecha disponible: {latest_date:%d/%m/%Y}."
+        ).encode(),
+        headers={
+            "Title": "La Odisea: monitor activo ✅",
+            "Click": URL,
+            "Priority": "default",
+            "Tags": "white_check_mark,movie_camera",
+        },
+        timeout=(10, 30),
+    )
+    response.raise_for_status()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--threshold", type=date.fromisoformat, default=DEFAULT_THRESHOLD)
     parser.add_argument("--cinema-id", default=DEFAULT_CINEMA_ID)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--heartbeat", action="store_true", help="notify that the monitor is healthy when no dates match")
     args = parser.parse_args()
 
     set_action_output("alerted", "false")
+    set_action_output("heartbeat_sent", "false")
     dates = fetch_dates(args.cinema_id)
     matches = [(movie_format, day) for movie_format, day in dates if day >= args.threshold]
     print(f"Fechas encontradas: {', '.join(sorted({day.isoformat() for _, day in dates}))}")
@@ -175,12 +195,20 @@ def main() -> int:
         print("PRUEBA OK" if matches else "Sin coincidencias")
         return 0
     if not matches:
+        if args.heartbeat:
+            topic = os.getenv("NTFY_TOPIC")
+            if not topic:
+                raise RuntimeError("Falta el secret NTFY_TOPIC")
+            latest_date = max(day for _, day in dates)
+            notify_heartbeat(topic, latest_date)
+            set_action_output("heartbeat_sent", "true")
+            print(f"Heartbeat enviado; última fecha disponible: {latest_date.isoformat()}")
         return 0
 
     topic = os.getenv("NTFY_TOPIC")
     if not topic:
         raise RuntimeError("Falta el secret NTFY_TOPIC")
-    notify(topic, matches)
+    notify_new_showtimes(topic, matches)
     set_action_output("alerted", "true")
     print("Alerta enviada; el workflow se desactivará para evitar duplicados")
     return 0
