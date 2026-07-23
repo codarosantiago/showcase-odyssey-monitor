@@ -4,7 +4,15 @@ on:
   schedule:
     # Every 20 minutes, offset from the top of the hour to reduce queue delays.
     - cron: "7,27,47 * * * *"
+    # Daily heartbeat around 11:00 Argentina time (14:00 UTC).
+    - cron: "0 14 * * *"
   workflow_dispatch:
+    inputs:
+      heartbeat:
+        description: "Send a test heartbeat notification"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   actions: write
@@ -35,7 +43,14 @@ jobs:
         id: monitor
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-        run: python monitor.py
+          SCHEDULE: ${{ github.event.schedule }}
+          MANUAL_HEARTBEAT: ${{ inputs.heartbeat }}
+        run: |
+          if [[ "$SCHEDULE" == "0 14 * * *" || "$MANUAL_HEARTBEAT" == "true" ]]; then
+            python monitor.py --heartbeat
+          else
+            python monitor.py
+          fi
 
       - name: Disable schedule after successful alert
         if: steps.monitor.outputs.alerted == 'true'
