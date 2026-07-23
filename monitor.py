@@ -166,7 +166,7 @@ def notify_heartbeat(topic: str, latest_date: date) -> None:
             f"funciones desde el 06/08/2026. Última fecha disponible: {latest_date:%d/%m/%Y}."
         ).encode(),
         headers={
-            "Title": "La Odisea: monitor activo ✅",
+            "Title": "La Odisea: monitor activo",
             "Click": URL,
             "Priority": "default",
             "Tags": "white_check_mark,movie_camera",
